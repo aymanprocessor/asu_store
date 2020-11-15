@@ -40,9 +40,36 @@
       });
     }
   </script>
-  <script src="main.dart.js" type="application/javascript"></script>
-  <script src="/__/firebase/8.0.2/firebase-app.js"></script>
-  <script src="/__/firebase/8.0.2/firebase-analytics.js"></script>
-  <script src="/__/firebase/init.js"></script>
+ 
+  
+
+  <script src="https://www.gstatic.com/firebasejs/8.0.2/init.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.0.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.0.2/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.0.2/firebase-firestore.js"></script>
+  
+  
+<!-- TODO: Add SDKs for Firebase products that you want to use
+     https://firebase.google.com/docs/web/setup#available-libraries -->
+<script src="https://www.gstatic.com/firebasejs/8.0.2/firebase-analytics.js"></script>
+
+<script>
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  var firebaseConfig = {
+    apiKey: "AIzaSyC0K43c3mMRRbaE8VEkbjUKkFq3QndYGmc",
+    authDomain: "asu-store.firebaseapp.com",
+    databaseURL: "https://asu-store.firebaseio.com",
+    projectId: "asu-store",
+    storageBucket: "asu-store.appspot.com",
+    messagingSenderId: "964466826607",
+    appId: "1:964466826607:web:584343ca57ea81b8731c9a",
+    measurementId: "G-BNW48YLDS5"
+  };
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  firebase.analytics();
+</script>
+<script src="main.dart.js" type="application/javascript"></script>
 </body>
 </html>

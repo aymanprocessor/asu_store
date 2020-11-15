@@ -1,5 +1,6 @@
 import 'package:asu_store/Pages/home.dart';
 import 'package:asu_store/Pages/sign_in.dart';
+import 'package:asu_store/Pages/sign_up.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -14,10 +15,11 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        fontFamily: 'Ubuntu',
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: SignInPage(),
+      home: SignUpPage(),
     );
   }
 }
