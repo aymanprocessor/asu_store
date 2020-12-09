@@ -1,5 +1,8 @@
 import 'package:argon_buttons_flutter/argon_buttons_flutter.dart';
 import 'package:asu_store/Pages/sign_in.dart';
+import 'package:asu_store/Services/auth.dart';
+import 'package:asu_store/Services/firestore_services.dart';
+import 'package:asu_store/models/registration_model.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
@@ -20,6 +23,17 @@ class _SignUpPageState extends State<SignUpPage> {
   final outlineInputBorder = OutlineInputBorder(
     borderRadius: BorderRadius.all(Radius.circular(25)),
   );
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    name.text = "Ayman Saad";
+    email.text = "aymansaadhack@gmail.com";
+    phone.text = "01099613699";
+    password.text = "password";
+    confirmPassword.text = "password";
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,6 +76,10 @@ class _SignUpPageState extends State<SignUpPage> {
                                 attribute: 'name',
                                 controller: name,
                                 keyboardType: TextInputType.name,
+                                validators: [
+                                  FormBuilderValidators.required(
+                                      errorText: "Enter your name")
+                                ],
                                 decoration: InputDecoration(
                                     prefixIcon: Icon(Icons.person),
                                     contentPadding:
@@ -74,6 +92,12 @@ class _SignUpPageState extends State<SignUpPage> {
                                 attribute: 'phone',
                                 controller: phone,
                                 keyboardType: TextInputType.phone,
+                                validators: [
+                                  FormBuilderValidators.required(
+                                      errorText: "Enter a valid number phon"),
+                                  FormBuilderValidators.minLength(11,
+                                      errorText: "Enter a valid number phone")
+                                ],
                                 decoration: InputDecoration(
                                     prefixIcon: Icon(Icons.phone),
                                     contentPadding:
@@ -86,6 +110,12 @@ class _SignUpPageState extends State<SignUpPage> {
                                 attribute: 'email',
                                 controller: email,
                                 keyboardType: TextInputType.emailAddress,
+                                validators: [
+                                  FormBuilderValidators.required(
+                                      errorText: "Enter a valid email"),
+                                  FormBuilderValidators.email(
+                                      errorText: "Enter a valid email")
+                                ],
                                 decoration: InputDecoration(
                                     prefixIcon: Icon(Icons.email),
                                     contentPadding:
@@ -99,6 +129,13 @@ class _SignUpPageState extends State<SignUpPage> {
                                 controller: password,
                                 keyboardType: TextInputType.visiblePassword,
                                 obscureText: true,
+                                validators: [
+                                  FormBuilderValidators.required(
+                                      errorText: "Enter password"),
+                                  FormBuilderValidators.minLength(4,
+                                      errorText:
+                                          "Enter password at least 4 char")
+                                ],
                                 decoration: InputDecoration(
                                     prefixIcon: Icon(Icons.vpn_key),
                                     contentPadding:
@@ -112,6 +149,21 @@ class _SignUpPageState extends State<SignUpPage> {
                                 controller: confirmPassword,
                                 keyboardType: TextInputType.visiblePassword,
                                 obscureText: true,
+                                validators: [
+                                  FormBuilderValidators.required(
+                                      errorText: "Enter confirm password"),
+                                  FormBuilderValidators.minLength(4,
+                                      errorText:
+                                          "Enter confirm password at least 4 char"),
+                                  (val) {
+                                    if (val !=
+                                        _fbKey.currentState.fields['password']
+                                            .currentState.value) {
+                                      return "password don\'t match";
+                                    }
+                                    return null;
+                                  }
+                                ],
                                 decoration: InputDecoration(
                                     prefixIcon: Icon(Icons.vpn_key),
                                     contentPadding:
@@ -135,6 +187,30 @@ class _SignUpPageState extends State<SignUpPage> {
                                     btnState) async {
                                   if (_fbKey.currentState.validate()) {
                                     if (btnState == ButtonState.Idle) {
+                                      startLoading();
+
+                                      await registration(RegistrationModel(
+                                              name.text,
+                                              phone.text,
+                                              email.text,
+                                              password.text))
+                                          .then((value) async {
+                                        stopLoading();
+                                        await addUser({
+                                          "name": name.text,
+                                          "phone": phone.text,
+                                          "email": email.text,
+                                          "current_balance": 0,
+                                        });
+                                        Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) =>
+                                                    SignInPage()));
+                                      }).catchError((err) {
+                                        stopLoading();
+                                        print(err);
+                                      });
                                     } else {}
                                   }
                                 },

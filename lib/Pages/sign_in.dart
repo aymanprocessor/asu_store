@@ -1,8 +1,13 @@
 import 'package:argon_buttons_flutter/argon_buttons_flutter.dart';
 import 'package:asu_store/Pages/sign_up.dart';
+import 'package:asu_store/Services/auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'home.dart';
 
 class SignInPage extends StatefulWidget {
   @override
@@ -93,9 +98,26 @@ class _SignInPageState extends State<SignInPage> {
                                     )),
                                 onTap: (startLoading, stopLoading,
                                     btnState) async {
+                                  SharedPreferences prefs =
+                                      await SharedPreferences.getInstance();
                                   if (_fbKey.currentState.validate()) {
                                     if (btnState == ButtonState.Idle) {
-                                    } else {}
+                                      startLoading();
+                                      login(email.text, password.text)
+                                          .then((value) {
+                                        stopLoading();
+
+                                        prefs.setString("email", value.email);
+                                        prefs.setString("uid", value.uid);
+                                        Navigator.pushReplacement(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (context) => Home()));
+                                      }).catchError((err) {
+                                        stopLoading();
+                                        print(err);
+                                      });
+                                    }
                                   }
                                 },
                               ),
