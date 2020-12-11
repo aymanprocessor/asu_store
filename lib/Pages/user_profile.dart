@@ -5,10 +5,12 @@ import 'package:asu_store/models/product_model.dart';
 import 'package:asu_store/models/user_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:math' as math;
 
 class UserProfile extends StatefulWidget {
   @override
@@ -19,6 +21,7 @@ class _UserProfileState extends State<UserProfile> {
   SharedPreferences prefs;
   UserModel user;
   FirebaseAuth auth = FirebaseAuth.instance;
+
   init() async {
     prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -58,290 +61,354 @@ class _UserProfileState extends State<UserProfile> {
   TextEditingController name = TextEditingController();
   TextEditingController price = TextEditingController();
   TextEditingController imageUrl = TextEditingController();
+
+  final ScrollController scrollController = ScrollController();
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('My Profile'),
       ),
-      body: SafeArea(
-        child: Center(
-          child: user != null
-              ? Column(
-                  children: [
-                    Container(
-                      height: 200,
-                      child: CircleAvatar(
-                        radius: 80,
-                        backgroundImage: NetworkImage(
-                            'https://ui-avatars.com/api/?name=${user.name}&size=128'),
-                      ),
-                    ),
-                    SizedBox(
-                      height: 10,
-                    ),
-                    Text(
-                      "${user.name}",
-                      style: TextStyle(
-                        fontSize: 30,
-                        letterSpacing: 1,
-                        color: Colors.grey[700],
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(
-                      height: 10,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.email,
-                          color: Colors.grey[700],
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        Text(
-                          "${user.email}",
-                          style: TextStyle(
-                            fontSize: 20,
-                            letterSpacing: 1,
-                            color: Colors.grey[700],
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 10,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.phone,
-                          color: Colors.grey[700],
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        Text(
-                          "${user.phone}",
-                          style: TextStyle(
-                            fontSize: 20,
-                            letterSpacing: 1,
-                            color: Colors.grey[700],
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 10,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "My Current Balance : ${user.currentBalance}",
-                          style: TextStyle(
-                            fontSize: 20,
-                            letterSpacing: 1,
-                            color: Colors.grey[700],
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 10,
-                    ),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          "Recharge My Balance",
-                          style: TextStyle(
-                            fontSize: 20,
-                            letterSpacing: 1,
-                            color: Colors.grey[700],
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        RaisedButton(
-                          onPressed: () {
-                            addBalance(50).then((value) => getUserInfo());
-                          },
-                          child: Text("+50"),
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        RaisedButton(
-                          onPressed: () {
-                            addBalance(100).then((value) => getUserInfo());
-                          },
-                          child: Text("+100"),
-                        ),
-                        SizedBox(
-                          width: 10,
-                        ),
-                        RaisedButton(
-                          onPressed: () {
-                            addBalance(500).then((value) => getUserInfo());
-                          },
-                          child: Text("+500"),
-                        ),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 30,
-                    ),
-                    RaisedButton(
-                      padding: EdgeInsets.all(15.0),
-                      color: Colors.blue,
-                      onPressed: () {
-                        Alert(
-                          context: context,
-                          title: "Add Item",
-                          content: Column(
-                            children: [
-                              FormBuilder(
-                                key: _formKey,
-                                child: Column(
-                                  children: [
-                                    FormBuilderTextField(
-                                      controller: name,
-                                      attribute: "productName",
-                                      validators: [
-                                        FormBuilderValidators.required(
-                                            errorText: "Enter product name")
-                                      ],
-                                      decoration:
-                                          InputDecoration(labelText: "Name"),
+      body: Scrollbar(
+        child: Listener(
+          onPointerSignal: (ps) {
+            if (ps is PointerScrollEvent) {
+              final newOffset = scrollController.offset + ps.scrollDelta.dy;
+              if (ps.scrollDelta.dy.isNegative) {
+                scrollController.jumpTo(math.max(0, newOffset));
+              } else {
+                scrollController.jumpTo(math.min(
+                    scrollController.position.maxScrollExtent, newOffset));
+              }
+            }
+          },
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: user != null
+                ? Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 40.0, right: 20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    height: 150,
+                                    child: CircleAvatar(
+                                      radius: 50,
+                                      backgroundImage: NetworkImage(
+                                          'https://ui-avatars.com/api/?name=${user.name}&size=96'),
                                     ),
-                                    FormBuilderTextField(
-                                      controller: price,
-                                      attribute: "price",
-                                      validators: [
-                                        FormBuilderValidators.required(
-                                            errorText: "Enter product price"),
-                                        FormBuilderValidators.numeric(
-                                            errorText: "Enter number only")
-                                      ],
-                                      decoration:
-                                          InputDecoration(labelText: "Price"),
+                                  ),
+                                  SizedBox(
+                                    height: 10,
+                                  ),
+                                  Text(
+                                    "${user.name}",
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      letterSpacing: 1,
+                                      color: Colors.grey[700],
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    FormBuilderTextField(
-                                      controller: imageUrl,
-                                      attribute: "imageUrl",
-                                      validators: [
-                                        FormBuilderValidators.required(
-                                            errorText:
-                                                "Enter product image url"),
-                                        FormBuilderValidators.url(
-                                            errorText: "Enter valid url")
-                                      ],
-                                      decoration: InputDecoration(
-                                          labelText: "Image URL"),
-                                    )
-                                  ],
-                                ),
-                              )
-                            ],
-                          ),
-                          buttons: [
-                            DialogButton(
-                              color: Colors.blue,
-                              child: Text(
-                                "Add",
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 20),
+                                  ),
+                                  SizedBox(
+                                    height: 10,
+                                  ),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.email,
+                                        color: Colors.grey[700],
+                                      ),
+                                      SizedBox(
+                                        width: 10,
+                                      ),
+                                      Text(
+                                        "${user.email}",
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          letterSpacing: 1,
+                                          color: Colors.grey[700],
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(
+                                    height: 10,
+                                  ),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.phone,
+                                        color: Colors.grey[700],
+                                      ),
+                                      SizedBox(
+                                        width: 10,
+                                      ),
+                                      Text(
+                                        "${user.phone}",
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          letterSpacing: 1,
+                                          color: Colors.grey[700],
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(
+                                    height: 10,
+                                  ),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.attach_money,
+                                        color: Colors.grey[700],
+                                      ),
+                                      SizedBox(
+                                        width: 10,
+                                      ),
+                                      Text(
+                                        "My Current Balance : ${user.currentBalance}",
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          letterSpacing: 1,
+                                          color: Colors.grey[700],
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(
+                                    height: 10,
+                                  ),
+                                ],
                               ),
-                              onPressed: () {
-                                if (_formKey.currentState.validate()) {
-                                  FirebaseFirestore.instance
-                                      .collection('products')
-                                      .add({
-                                    "name": name.text,
-                                    "price": int.parse(price.text.toString()),
-                                    "imgUrl": imageUrl.text,
-                                    "rating": Random().nextInt(5),
-                                    "noOfRating": Random().nextInt(500),
-                                    "owner": user.email,
-                                  }).then((value) => Navigator.pop(context));
-                                }
-                              },
-                              width: 170,
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        "Recharge My Balance",
+                                        style: TextStyle(
+                                          fontSize: 15,
+                                          letterSpacing: 1,
+                                          color: Colors.blue[700],
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 10,
+                                      ),
+                                      RaisedButton(
+                                        onPressed: () {
+                                          addBalance(50)
+                                              .then((value) => getUserInfo());
+                                        },
+                                        child: Text("+50"),
+                                      ),
+                                      SizedBox(
+                                        width: 10,
+                                      ),
+                                      RaisedButton(
+                                        onPressed: () {
+                                          addBalance(100)
+                                              .then((value) => getUserInfo());
+                                        },
+                                        child: Text("+100"),
+                                      ),
+                                      SizedBox(
+                                        width: 10,
+                                      ),
+                                      RaisedButton(
+                                        onPressed: () {
+                                          addBalance(500)
+                                              .then((value) => getUserInfo());
+                                        },
+                                        child: Text("+500"),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(
+                                    height: 20,
+                                  ),
+                                  RaisedButton(
+                                    color: Colors.blue,
+                                    onPressed: () {},
+                                    child: Text("View Recharge History",
+                                        style: TextStyle(color: Colors.white)),
+                                  ),
+                                  SizedBox(
+                                    height: 20,
+                                  ),
+                                  RaisedButton(
+                                    color: Colors.blue,
+                                    onPressed: () {},
+                                    child: Text("View Transaction History",
+                                        style: TextStyle(color: Colors.white)),
+                                  ),
+                                ],
+                              ),
                             )
                           ],
-                        ).show();
-                      },
-                      child: Text("Add Item",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20.0,
-                          )),
-                    ),
-                    SizedBox(
-                      height: 30,
-                    ),
-                    Container(
-                      padding: EdgeInsets.only(left: 25, right: 25),
-                      child: StreamBuilder(
-                          stream: auth.currentUser != null && user != null
-                              ? FirebaseFirestore.instance
-                                  .collection("products")
-                                  .where("owner", isEqualTo: user.email)
-                                  .snapshots()
-                              : FirebaseFirestore.instance
-                                  .collection("products")
-                                  .snapshots(),
-                          builder: (context, snapshot) {
-                            switch (snapshot.connectionState) {
-                              case ConnectionState.waiting:
-                                return Center(
-                                    child: CircularProgressIndicator());
-                              default:
-                                if (snapshot.hasData) {
-                                  return GridView.builder(
-                                      itemCount: snapshot.data.docs.length,
-                                      gridDelegate:
-                                          SliverGridDelegateWithFixedCrossAxisCount(
-                                              crossAxisCount: 4),
-                                      shrinkWrap: true,
-                                      itemBuilder: (context, index) {
-                                        ProductModel products =
-                                            ProductModel.fromSnapshot(
-                                                snapshot.data.docs[index]);
-                                        return ProductTile(
-                                          id: products.id,
-                                          priceInDollars: products.price,
-                                          productName: products.productName,
-                                          rating: products.rating,
-                                          imgUrl: products.imgUrl,
-                                          noOfRating: products.noOfRating,
-                                        );
-                                      });
-                                } else if (snapshot.hasError) {
+                        ),
+                      ),
+                      SizedBox(
+                        height: 30,
+                      ),
+                      RaisedButton(
+                        padding: EdgeInsets.all(15.0),
+                        color: Colors.blue,
+                        onPressed: () {
+                          Alert(
+                            context: context,
+                            title: "Add Item",
+                            content: Column(
+                              children: [
+                                FormBuilder(
+                                  key: _formKey,
+                                  child: Column(
+                                    children: [
+                                      FormBuilderTextField(
+                                        controller: name,
+                                        attribute: "productName",
+                                        validators: [
+                                          FormBuilderValidators.required(
+                                              errorText: "Enter product name")
+                                        ],
+                                        decoration:
+                                            InputDecoration(labelText: "Name"),
+                                      ),
+                                      FormBuilderTextField(
+                                        controller: price,
+                                        attribute: "price",
+                                        validators: [
+                                          FormBuilderValidators.required(
+                                              errorText: "Enter product price"),
+                                          FormBuilderValidators.numeric(
+                                              errorText: "Enter number only")
+                                        ],
+                                        decoration:
+                                            InputDecoration(labelText: "Price"),
+                                      ),
+                                      FormBuilderTextField(
+                                        controller: imageUrl,
+                                        attribute: "imageUrl",
+                                        validators: [
+                                          FormBuilderValidators.required(
+                                              errorText:
+                                                  "Enter product image url"),
+                                          FormBuilderValidators.url(
+                                              errorText: "Enter valid url")
+                                        ],
+                                        decoration: InputDecoration(
+                                            labelText: "Image URL"),
+                                      )
+                                    ],
+                                  ),
+                                )
+                              ],
+                            ),
+                            buttons: [
+                              DialogButton(
+                                color: Colors.blue,
+                                child: Text(
+                                  "Add",
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 20),
+                                ),
+                                onPressed: () {
+                                  if (_formKey.currentState.validate()) {
+                                    FirebaseFirestore.instance
+                                        .collection('products')
+                                        .add({
+                                      "name": name.text,
+                                      "price": int.parse(price.text.toString()),
+                                      "imgUrl": imageUrl.text,
+                                      "rating": Random().nextInt(5),
+                                      "noOfRating": Random().nextInt(500),
+                                      "owner": user.email,
+                                    }).then((value) => Navigator.pop(context));
+                                  }
+                                },
+                                width: 170,
+                              )
+                            ],
+                          ).show();
+                        },
+                        child: Text("Add Item",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20.0,
+                            )),
+                      ),
+                      SizedBox(
+                        height: 30,
+                      ),
+                      Container(
+                        padding: EdgeInsets.only(left: 25, right: 25),
+                        child: StreamBuilder(
+                            stream: auth.currentUser != null && user != null
+                                ? FirebaseFirestore.instance
+                                    .collection("products")
+                                    .where("owner", isEqualTo: user.email)
+                                    .snapshots()
+                                : FirebaseFirestore.instance
+                                    .collection("products")
+                                    .snapshots(),
+                            builder: (context, snapshot) {
+                              switch (snapshot.connectionState) {
+                                case ConnectionState.waiting:
                                   return Center(
-                                    child: Text(snapshot.error.toString()),
-                                  );
-                                } else {
-                                  return Center(
-                                    child: CircularProgressIndicator(),
-                                  );
-                                }
-                            }
-                          }),
-                    ),
-                  ],
-                )
-              : CircularProgressIndicator(),
+                                      child: CircularProgressIndicator());
+                                default:
+                                  if (snapshot.hasData) {
+                                    return GridView.builder(
+                                        itemCount: snapshot.data.docs.length,
+                                        gridDelegate:
+                                            SliverGridDelegateWithFixedCrossAxisCount(
+                                                crossAxisCount: 4),
+                                        shrinkWrap: true,
+                                        itemBuilder: (context, index) {
+                                          ProductModel products =
+                                              ProductModel.fromSnapshot(
+                                                  snapshot.data.docs[index]);
+                                          return ProductTile(
+                                            id: products.id,
+                                            priceInDollars: products.price,
+                                            productName: products.productName,
+                                            rating: products.rating,
+                                            imgUrl: products.imgUrl,
+                                            noOfRating: products.noOfRating,
+                                          );
+                                        });
+                                  } else if (snapshot.hasError) {
+                                    return Center(
+                                      child: Text(snapshot.error.toString()),
+                                    );
+                                  } else {
+                                    return Center(
+                                      child: CircularProgressIndicator(),
+                                    );
+                                  }
+                              }
+                            }),
+                      ),
+                    ],
+                  )
+                : CircularProgressIndicator(),
+          ),
         ),
       ),
     );
