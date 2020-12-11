@@ -24,3 +24,12 @@ Future<User> registration(RegistrationModel data) async {
   }
   return null;
 }
+
+Future<bool> logout() async {
+  User user = auth.currentUser;
+  if (user != null) {
+    auth.signOut();
+    return true;
+  }
+  return false;
+}

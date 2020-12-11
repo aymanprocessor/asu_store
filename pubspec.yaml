@@ -30,6 +30,8 @@ dependencies:
   firebase_auth_web: ^0.3.2+3
   firebase_core: ^0.5.2
   flutter_form_builder: ^3.14.1
+  provider: ^4.3.2+3
+  rflutter_alert: ^1.1.0
   shared_preferences: ^0.5.12+4
 
 dev_dependencies:
@@ -56,6 +58,10 @@ fonts:
         weight: 700
       - asset: assets/fonts/Ubuntu-Medium.ttf
         weight: 600
+
+  - family: MaterialIcons
+    fonts:
+      - asset: assets/fonts/MaterialIcons-Regular.ttf
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.
   # For details regarding adding assets from package dependencies, see

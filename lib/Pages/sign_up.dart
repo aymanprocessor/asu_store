@@ -28,11 +28,11 @@ class _SignUpPageState extends State<SignUpPage> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    name.text = "Ayman Saad";
-    email.text = "aymansaadhack@gmail.com";
-    phone.text = "01099613699";
-    password.text = "password";
-    confirmPassword.text = "password";
+    // name.text = "Ayman Saad";
+    // email.text = "aymansaadhack@gmail.com";
+    // phone.text = "01099613699";
+    // password.text = "password";
+    // confirmPassword.text = "password";
   }
 
   @override

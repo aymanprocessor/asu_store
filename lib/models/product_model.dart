@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ProductModel {
+  String id;
   String owner;
   int price; // price
   String productName; // name of the product
@@ -8,7 +9,8 @@ class ProductModel {
   String imgUrl; // product image url
   int noOfRating; // number of rating
   ProductModel(
-      {this.owner,
+      {this.id,
+      this.owner,
       this.productName,
       this.imgUrl,
       this.price,
@@ -17,6 +19,7 @@ class ProductModel {
 
   factory ProductModel.fromSnapshot(DocumentSnapshot snapshot) {
     return ProductModel(
+      id: snapshot.id,
       owner: snapshot.data()['owner'],
       productName: snapshot.data()['name'],
       price: snapshot.data()['price'],

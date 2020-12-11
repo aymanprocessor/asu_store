@@ -1,5 +1,13 @@
 [
     {
+        "family": "MaterialIcons",
+        "fonts": [
+            {
+                "asset": "fonts/MaterialIcons-Regular.ttf"
+            }
+        ]
+    },
+    {
         "family": "Ubuntu",
         "fonts": [
             {
