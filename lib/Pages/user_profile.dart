@@ -1,5 +1,7 @@
 import 'dart:math';
 
+import 'package:asu_store/Pages/transaction.dart';
+import 'package:asu_store/Pages/balance.dart';
 import 'package:asu_store/Services/firestore_services.dart';
 import 'package:asu_store/models/product_model.dart';
 import 'package:asu_store/models/user_model.dart';
@@ -245,8 +247,14 @@ class _UserProfileState extends State<UserProfile> {
                                   ),
                                   RaisedButton(
                                     color: Colors.blue,
-                                    onPressed: () {},
-                                    child: Text("View Recharge History",
+                                    onPressed: () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (BuildContext context) =>
+                                                  BalancePage()));
+                                    },
+                                    child: Text("View Balance History",
                                         style: TextStyle(color: Colors.white)),
                                   ),
                                   SizedBox(
@@ -254,7 +262,13 @@ class _UserProfileState extends State<UserProfile> {
                                   ),
                                   RaisedButton(
                                     color: Colors.blue,
-                                    onPressed: () {},
+                                    onPressed: () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (BuildContext context) =>
+                                                  TransactionPage()));
+                                    },
                                     child: Text("View Transaction History",
                                         style: TextStyle(color: Colors.white)),
                                   ),

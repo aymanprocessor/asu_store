@@ -11,7 +11,13 @@ Future<void> addUser(Map<String, dynamic> user) {
 Future<void> addBalance(int bal) {
   return userCol
       .doc(user.email)
-      .update({"current_balance": FieldValue.increment(bal)});
+      .update({"current_balance": FieldValue.increment(bal)}).then((value) {
+    firestore.collection('balances').add({
+      "balance": bal,
+      "date": DateTime.now().millisecondsSinceEpoch,
+      "owner": user.email
+    });
+  });
 }
 
 String email2name(String email) {

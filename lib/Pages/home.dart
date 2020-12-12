@@ -31,7 +31,7 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     products = getProducts();
-    if (auth.currentUser != null) {
+    if (FirebaseAuth.instance.currentUser != null) {
       setState(() {
         fbuser = auth.currentUser;
       });
@@ -153,6 +153,10 @@ class _HomeState extends State<Home> {
                                 context,
                                 MaterialPageRoute(
                                     builder: (context) => SignInPage()));
+                          } else {
+                            setState(() {
+                              fbuser = FirebaseAuth.instance.currentUser;
+                            });
                           }
                         },
                         child: Row(
@@ -555,7 +559,8 @@ class ProductTile extends StatelessWidget {
                                               "from": ownerEmail,
                                               "date": DateTime.now()
                                                   .millisecondsSinceEpoch,
-                                              "productId": id
+                                              "productId": id,
+                                              "price": priceInDollars
                                             }).then((value) {
                                               FirebaseFirestore.instance
                                                   .collection('products')
