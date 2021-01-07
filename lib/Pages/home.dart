@@ -2,16 +2,22 @@ import 'package:asu_store/Pages/sign_up.dart';
 import 'package:asu_store/Pages/user_profile.dart';
 import 'package:asu_store/Services/auth.dart';
 import 'package:asu_store/Services/firestore_services.dart';
+import 'package:asu_store/Services/product_services.dart';
+import 'package:asu_store/Services/transaction_services.dart';
+import 'package:asu_store/Services/user_services.dart';
 import 'package:asu_store/fake_data/products_data.dart';
 import 'package:asu_store/models/product_model.dart';
+import 'package:asu_store/models/transaction_model.dart';
 import 'package:asu_store/models/user_model.dart';
 import 'package:badges/badges.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../Services/search_service.dart';
+import '../Services/user_services.dart';
 import 'dart:math' as math;
 import 'sign_in.dart';
 
@@ -31,16 +37,68 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     products = getProducts();
-    if (FirebaseAuth.instance.currentUser != null) {
+    if (auth.currentUser != null) {
       setState(() {
         fbuser = auth.currentUser;
       });
     }
+    initiateSearch("");
   }
 
   Stream<User> getaaa() {
     Future.delayed(Duration(seconds: 3));
     return FirebaseAuth.instance.authStateChanges();
+  }
+
+  List<ProductModel> queryResultSet = [];
+  List<ProductModel> tempSearchStore = [];
+
+  initiateSearch(String value) {
+    if (value.length == 0) {
+      tempSearchStore = [];
+      queryResultSet = [];
+      if (auth.currentUser != null) {
+        SearchService().getProductsWithoutOwner().then((element) {
+          element.forEach((element) {
+            setState(() {
+              queryResultSet = [];
+              tempSearchStore.add(element);
+            });
+          });
+        });
+      } else {
+        SearchService().getProductsWithOwner().then((element) {
+          element.forEach((element) {
+            setState(() {
+              queryResultSet = [];
+              tempSearchStore.add(element);
+            });
+          });
+        });
+      }
+    }
+    var capitalizedValue =
+        value != "" ? value.substring(0, 1) + value.substring(1) : "";
+
+    if (queryResultSet.length == 0 && value.length == 1) {
+      SearchService().searchByName(value).then((List<ProductModel> docs) {
+        for (int i = 0; i < docs.length; ++i) {
+          queryResultSet.add(docs[i]);
+        }
+        setState(() {
+          tempSearchStore = queryResultSet;
+        });
+      });
+    } else {
+      tempSearchStore = [];
+      queryResultSet.forEach((element) {
+        if (element.productName.toLowerCase().startsWith(capitalizedValue)) {
+          setState(() {
+            tempSearchStore.add(element);
+          });
+        }
+      });
+    }
   }
 
   @override
@@ -55,14 +113,17 @@ class _HomeState extends State<Home> {
                 if (snapshot.connectionState == ConnectionState.waiting)
                   return Container();
                 if (fbuser != null) {
-                  return StreamBuilder<DocumentSnapshot>(
-                      stream: FirebaseFirestore.instance
-                          .collection('users')
-                          .doc(snapshot.data.email)
-                          .snapshots(),
+                  return StreamBuilder<UserModel>(
+                      stream: Stream.periodic(Duration(milliseconds: 500))
+                          .asyncMap((event) =>
+                              fetchUsersByEmail(snapshot.data.email)),
+                      // FirebaseFirestore.instance
+                      //     .collection('users')
+                      //     .doc(snapshot.data.email)
+                      //     .snapshots(),
                       builder: (context, doc) {
                         if (!doc.hasData) return CircularProgressIndicator();
-                        user = UserModel.fronSnapshot(doc.data);
+                        user = doc.data;
                         return Row(
                           children: [
                             FirebaseAuth.instance.currentUser != null
@@ -154,6 +215,7 @@ class _HomeState extends State<Home> {
                                 MaterialPageRoute(
                                     builder: (context) => SignInPage()));
                           } else {
+                            initiateSearch("");
                             setState(() {
                               fbuser = FirebaseAuth.instance.currentUser;
                             });
@@ -234,7 +296,7 @@ class _HomeState extends State<Home> {
                   // here we will add our containers
                   Container(
                     margin: EdgeInsets.symmetric(horizontal: 12),
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
@@ -247,18 +309,29 @@ class _HomeState extends State<Home> {
                       ],
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                        Padding(
-                          padding: const EdgeInsets.only(left: 9),
-                          child: Text(
-                            "Search",
-                            style: TextStyle(
-                                color: Color(0xff9B9B9B), fontSize: 17),
-                          ),
+                        Expanded(
+                          child: Padding(
+                              padding: const EdgeInsets.only(left: 9),
+                              child: TextField(
+                                onChanged: (str) {
+                                  initiateSearch(str);
+                                },
+                                style: TextStyle(
+                                    color: Colors.blue,
+                                    fontWeight: FontWeight.bold),
+                                decoration: InputDecoration(
+                                  suffixIcon: Icon(Icons.search),
+                                  hintText: "Search",
+                                  border: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  errorBorder: InputBorder.none,
+                                  disabledBorder: InputBorder.none,
+                                ),
+                              )),
                         ),
-                        Spacer(),
-                        Icon(Icons.search),
                       ],
                     ),
                   ),
@@ -293,82 +366,44 @@ class _HomeState extends State<Home> {
                   StreamBuilder<User>(
                       stream: FirebaseAuth.instance.authStateChanges(),
                       builder: (context, user) {
-                        return Container(
-                          padding: EdgeInsets.only(left: 25, right: 25),
-                          child: StreamBuilder<QuerySnapshot>(
-                              stream: user.data != null
-                                  ? FirebaseFirestore.instance
-                                      .collection("products")
-                                      .where("owner",
-                                          isNotEqualTo: user.data.email)
-                                      .snapshots()
-                                  : FirebaseFirestore.instance
-                                      .collection("products")
-                                      .snapshots(),
-                              builder: (context, snapshot) {
-                                switch (snapshot.connectionState) {
-                                  case ConnectionState.waiting:
-                                    return Center(
-                                        child: CircularProgressIndicator());
-                                  default:
-                                    if (snapshot.hasData) {
-                                      if (snapshot.data.docs.isEmpty) {
-                                        return Center(child: Text("No Data"));
-                                      }
-                                      return GridView.builder(
-                                          itemCount: snapshot.data.docs.length,
-                                          gridDelegate:
-                                              SliverGridDelegateWithFixedCrossAxisCount(
-                                                  crossAxisCount: 4),
-                                          shrinkWrap: true,
-                                          physics:
-                                              NeverScrollableScrollPhysics(),
-                                          itemBuilder: (context, index) {
-                                            ProductModel products =
-                                                ProductModel.fromSnapshot(
-                                                    snapshot.data.docs[index]);
-                                            return StreamBuilder<
-                                                    DocumentSnapshot>(
-                                                stream: FirebaseFirestore
-                                                    .instance
-                                                    .collection('users')
-                                                    .doc(products.owner)
-                                                    .snapshots(),
-                                                builder: (context, snapshot) {
-                                                  if (snapshot.hasData) {
-                                                    return ProductTile(
-                                                      id: products.id,
-                                                      priceInDollars:
-                                                          products.price,
-                                                      productName:
-                                                          products.productName,
-                                                      rating: products.rating,
-                                                      imgUrl: products.imgUrl,
-                                                      noOfRating:
-                                                          products.noOfRating,
-                                                      owner: snapshot.data
-                                                          .data()['name'],
-                                                      ownerEmail:
-                                                          products.owner,
-                                                    );
-                                                  }
-                                                  return Center(
-                                                      child:
-                                                          CircularProgressIndicator());
-                                                });
+                        return tempSearchStore.isNotEmpty
+                            ? Container(
+                                padding: EdgeInsets.only(left: 25, right: 25),
+                                child: GridView.builder(
+                                    itemCount: tempSearchStore.length,
+                                    gridDelegate:
+                                        SliverGridDelegateWithFixedCrossAxisCount(
+                                            crossAxisCount: 4),
+                                    shrinkWrap: true,
+                                    physics: NeverScrollableScrollPhysics(),
+                                    itemBuilder: (context, index) {
+                                      ProductModel products =
+                                          tempSearchStore[index];
+
+                                      return FutureBuilder<UserModel>(
+                                          future: getOwnerName(products.owner),
+                                          builder: (context, snapshot) {
+                                            if (snapshot.hasData) {
+                                              return ProductTile(
+                                                  id: products.id,
+                                                  priceInDollars:
+                                                      products.price,
+                                                  productName:
+                                                      products.productName,
+                                                  rating: products.rating,
+                                                  imgUrl: products.imgUrl,
+                                                  noOfRating:
+                                                      products.noOfRating,
+                                                  ownerEmail: products.owner,
+                                                  owner: snapshot.data.name);
+                                            } else {
+                                              return Center(
+                                                  child:
+                                                      CircularProgressIndicator());
+                                            }
                                           });
-                                    } else if (snapshot.hasError) {
-                                      return Center(
-                                        child: Text(snapshot.error.toString()),
-                                      );
-                                    } else {
-                                      return Center(
-                                        child: CircularProgressIndicator(),
-                                      );
-                                    }
-                                }
-                              }),
-                        );
+                                    }))
+                            : Text("No Data");
                       }),
                 ],
               ),
@@ -458,7 +493,7 @@ class ProductTile extends StatelessWidget {
                   children: [
                     Container(
                       height: 25,
-                      width: 45,
+                      width: 70,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(6),
@@ -521,11 +556,12 @@ class ProductTile extends StatelessWidget {
                   stream: FirebaseAuth.instance.authStateChanges(),
                   builder: (BuildContext context, AsyncSnapshot<User> user) {
                     if (user.hasData) {
-                      return StreamBuilder<DocumentSnapshot>(
-                          stream: FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(user.data.email)
-                              .snapshots(),
+                      return FutureBuilder<UserModel>(
+                          future: fetchUsersByEmail(user.data.email),
+                          // stream: FirebaseFirestore.instance
+                          //     .collection('users')
+                          //     .doc(user.data.email)
+                          //     .snapshots(),
                           builder: (context, snapshot) {
                             if (!snapshot.hasData)
                               return Center(child: CircularProgressIndicator());
@@ -533,8 +569,7 @@ class ProductTile extends StatelessWidget {
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10.0)),
                               onPressed: () {
-                                if (int.parse(snapshot.data
-                                        .data()['current_balance']
+                                if (int.parse(snapshot.data.currentBalance
                                         .toString()) >=
                                     priceInDollars) {
                                   Alert(
@@ -552,33 +587,52 @@ class ProductTile extends StatelessWidget {
                                                 fontSize: 20),
                                           ),
                                           onPressed: () {
-                                            FirebaseFirestore.instance
-                                                .collection('transactions')
-                                                .add({
-                                              "to": user.data.email,
-                                              "from": ownerEmail,
-                                              "date": DateTime.now()
-                                                  .millisecondsSinceEpoch,
-                                              "productId": id,
-                                              "price": priceInDollars
-                                            }).then((value) {
-                                              FirebaseFirestore.instance
-                                                  .collection('products')
-                                                  .doc(id)
-                                                  .update({
-                                                "owner": user.data.email
-                                              });
+                                            createTransaction(TransactionModel(
+                                                    to: user.data.email,
+                                                    from: ownerEmail,
+                                                    date: DateTime.now()
+                                                        .millisecondsSinceEpoch,
+                                                    productId: id,
+                                                    name: productName,
+                                                    price: priceInDollars))
+                                                .then((value) {
+                                              updateProduct(id,
+                                                  {"owner": user.data.email});
 
-                                              FirebaseFirestore.instance
-                                                  .collection('users')
-                                                  .doc(user.data.email)
-                                                  .update({
-                                                "current_balance":
-                                                    FieldValue.increment(
-                                                        -priceInDollars)
-                                              });
+                                              changeBalance(user.data.email,
+                                                  -priceInDollars);
+
                                               Navigator.pop(context);
                                             });
+
+                                            // FirebaseFirestore.instance
+                                            //     .collection('transactions')
+                                            //     .add({
+                                            //   "to": user.data.email,
+                                            //   "from": ownerEmail,
+                                            //   "date": DateTime.now()
+                                            //       .millisecondsSinceEpoch,
+                                            //   "productId": id,
+                                            //   "name": productName,
+                                            //   "price": priceInDollars
+                                            // }).then((value) {
+                                            //   FirebaseFirestore.instance
+                                            //       .collection('products')
+                                            //       .doc(id)
+                                            //       .update({
+                                            //     "owner": user.data.email
+                                            //   });
+
+                                            //   FirebaseFirestore.instance
+                                            //       .collection('users')
+                                            //       .doc(user.data.email)
+                                            //       .update({
+                                            //     "current_balance":
+                                            //         FieldValue.increment(
+                                            //             -priceInDollars)
+                                            //   });
+                                            //Navigator.pop(context);
+                                            // });
                                           },
                                           width: 170,
                                         )

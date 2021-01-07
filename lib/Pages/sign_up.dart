@@ -3,6 +3,7 @@ import 'package:asu_store/Pages/sign_in.dart';
 import 'package:asu_store/Services/auth.dart';
 import 'package:asu_store/Services/firestore_services.dart';
 import 'package:asu_store/models/registration_model.dart';
+import 'package:asu_store/models/user_model.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
@@ -190,18 +191,18 @@ class _SignUpPageState extends State<SignUpPage> {
                                       startLoading();
 
                                       await registration(RegistrationModel(
-                                              name.text,
-                                              phone.text,
-                                              email.text,
-                                              password.text))
+                                              name: name.text,
+                                              phone: phone.text,
+                                              email: email.text,
+                                              password: password.text))
                                           .then((value) async {
                                         stopLoading();
-                                        await addUser({
-                                          "name": name.text,
-                                          "phone": phone.text,
-                                          "email": email.text,
-                                          "current_balance": 0,
-                                        });
+                                        await addUser(UserModel(
+                                          name: name.text,
+                                          phone: phone.text,
+                                          email: email.text,
+                                          currentBalance: 0,
+                                        ));
                                         Navigator.push(
                                             context,
                                             MaterialPageRoute(

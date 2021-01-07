@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:asu_store/Pages/transaction.dart';
 import 'package:asu_store/Pages/balance.dart';
 import 'package:asu_store/Services/firestore_services.dart';
+import 'package:asu_store/Services/product_services.dart';
+import 'package:asu_store/Services/user_services.dart';
 import 'package:asu_store/models/product_model.dart';
 import 'package:asu_store/models/user_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,6 +15,7 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math' as math;
+import '../Services/search_service.dart';
 
 class UserProfile extends StatefulWidget {
   @override
@@ -40,15 +43,20 @@ class _UserProfileState extends State<UserProfile> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     final String email = prefs.getString('email');
     if (auth.currentUser != null) {
-      FirebaseFirestore.instance
-          .collection('users')
-          .doc(email)
-          .get()
-          .then((value) {
+      fetchUsersByEmail(email).then((value) {
         setState(() {
-          user = UserModel.fronSnapshot(value);
+          user = value;
         });
       });
+      // FirebaseFirestore.instance
+      //     .collection('users')
+      //     .doc(email)
+      //     .get()
+      //     .then((value) {
+      //   setState(() {
+      //     user = UserModel.fronSnapshot(value);
+      //   });
+      // });
     }
   }
 
@@ -63,6 +71,12 @@ class _UserProfileState extends State<UserProfile> {
   TextEditingController name = TextEditingController();
   TextEditingController price = TextEditingController();
   TextEditingController imageUrl = TextEditingController();
+
+  clear() {
+    name.clear();
+    price.clear();
+    imageUrl.clear();
+  }
 
   final ScrollController scrollController = ScrollController();
   @override
@@ -132,7 +146,7 @@ class _UserProfileState extends State<UserProfile> {
                                         width: 10,
                                       ),
                                       Text(
-                                        "${user.email}",
+                                        "${user.id}",
                                         style: TextStyle(
                                           fontSize: 15,
                                           letterSpacing: 1,
@@ -215,8 +229,10 @@ class _UserProfileState extends State<UserProfile> {
                                       ),
                                       RaisedButton(
                                         onPressed: () {
-                                          addBalance(50)
+                                          changeBalance(user.id, 50)
                                               .then((value) => getUserInfo());
+                                          // addBalance(50)
+                                          //     .then((value) => getUserInfo());
                                         },
                                         child: Text("+50"),
                                       ),
@@ -225,8 +241,10 @@ class _UserProfileState extends State<UserProfile> {
                                       ),
                                       RaisedButton(
                                         onPressed: () {
-                                          addBalance(100)
+                                          changeBalance(user.id, 100)
                                               .then((value) => getUserInfo());
+                                          // addBalance(100)
+                                          //     .then((value) => getUserInfo());
                                         },
                                         child: Text("+100"),
                                       ),
@@ -235,8 +253,10 @@ class _UserProfileState extends State<UserProfile> {
                                       ),
                                       RaisedButton(
                                         onPressed: () {
-                                          addBalance(500)
+                                          changeBalance(user.id, 500)
                                               .then((value) => getUserInfo());
+                                          // addBalance(500)
+                                          //     .then((value) => getUserInfo());
                                         },
                                         child: Text("+500"),
                                       ),
@@ -344,16 +364,34 @@ class _UserProfileState extends State<UserProfile> {
                                 ),
                                 onPressed: () {
                                   if (_formKey.currentState.validate()) {
-                                    FirebaseFirestore.instance
-                                        .collection('products')
-                                        .add({
-                                      "name": name.text,
-                                      "price": int.parse(price.text.toString()),
-                                      "imgUrl": imageUrl.text,
-                                      "rating": Random().nextInt(5),
-                                      "noOfRating": Random().nextInt(500),
-                                      "owner": user.email,
-                                    }).then((value) => Navigator.pop(context));
+                                    ProductModel product = ProductModel(
+                                        owner: user.email,
+                                        productName: name.text,
+                                        price: int.parse(price.text.toString()),
+                                        imgUrl: imageUrl.text,
+                                        rating: Random().nextInt(5),
+                                        noOfRating: Random().nextInt(500),
+                                        searchKey: name.text
+                                            .substring(0, 1)
+                                            .toLowerCase());
+                                    createProduct(product).then((value) {
+                                      clear();
+                                      Navigator.pop(context);
+                                      print(value);
+                                    }).catchError((onError) => print(onError));
+                                    //   FirebaseFirestore.instance
+                                    //       .collection('products')
+                                    //       .add({
+                                    //     "name": name.text,
+                                    //     "price": int.parse(price.text.toString()),
+                                    //     "imgUrl": imageUrl.text,
+                                    //     "rating": Random().nextInt(5),
+                                    //     "noOfRating": Random().nextInt(500),
+                                    //     "owner": user.email,
+                                    //     "searchKey": name.text
+                                    //         .substring(0, 1)
+                                    //         .toLowerCase()
+                                    //   }).then((value) => Navigator.pop(context));
                                   }
                                 },
                                 width: 170,
@@ -371,16 +409,15 @@ class _UserProfileState extends State<UserProfile> {
                         height: 30,
                       ),
                       Container(
+                        height: 800,
                         padding: EdgeInsets.only(left: 25, right: 25),
-                        child: StreamBuilder(
-                            stream: auth.currentUser != null && user != null
-                                ? FirebaseFirestore.instance
-                                    .collection("products")
-                                    .where("owner", isEqualTo: user.email)
-                                    .snapshots()
-                                : FirebaseFirestore.instance
-                                    .collection("products")
-                                    .snapshots(),
+                        child: StreamBuilder<List<ProductModel>>(
+                            stream: Stream.periodic(Duration(seconds: 1))
+                                .asyncMap((event) {
+                              return auth.currentUser != null && user != null
+                                  ? fetchMyProducts()
+                                  : SearchService().getProductsWithOwner();
+                            }),
                             builder: (context, snapshot) {
                               switch (snapshot.connectionState) {
                                 case ConnectionState.waiting:
@@ -389,15 +426,14 @@ class _UserProfileState extends State<UserProfile> {
                                 default:
                                   if (snapshot.hasData) {
                                     return GridView.builder(
-                                        itemCount: snapshot.data.docs.length,
+                                        itemCount: snapshot.data.length,
                                         gridDelegate:
                                             SliverGridDelegateWithFixedCrossAxisCount(
                                                 crossAxisCount: 4),
                                         shrinkWrap: true,
                                         itemBuilder: (context, index) {
                                           ProductModel products =
-                                              ProductModel.fromSnapshot(
-                                                  snapshot.data.docs[index]);
+                                              snapshot.data[index];
                                           return ProductTile(
                                             id: products.id,
                                             priceInDollars: products.price,
@@ -496,161 +532,216 @@ class ProductTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 3.0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-      child: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: Column(
-          children: <Widget>[
-            Container(
-              height: 25,
-              width: 45,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
-                  gradient: LinearGradient(colors: [
-                    const Color(0xff8EA2FF).withOpacity(0.8),
-                    const Color(0xff557AC7).withOpacity(0.8)
-                  ])),
-              child: Text(
-                "\$$priceInDollars",
-                style: TextStyle(color: Colors.white),
+    return Container(
+      child: Card(
+        clipBehavior: Clip.antiAliasWithSaveLayer,
+        semanticContainer: true,
+        elevation: 3.0,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: Column(
+            children: <Widget>[
+              Container(
+                height: 20,
+                width: 70,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    gradient: LinearGradient(colors: [
+                      const Color(0xff8EA2FF).withOpacity(0.8),
+                      const Color(0xff557AC7).withOpacity(0.8)
+                    ])),
+                child: Text(
+                  "\$$priceInDollars",
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
-            ),
-            Image.network(
-              imgUrl,
-              height: 150,
-              fit: BoxFit.cover,
-            ),
-            Text(productName),
+              Image.network(
+                imgUrl,
+                height: 150,
+                fit: BoxFit.cover,
+              ),
+              Text(productName),
 
-            // Row(
-            //   mainAxisAlignment: MainAxisAlignment.center,
-            //   children: <Widget>[
-            //     StarRating(
-            //       rating: rating,
-            //     ),
-            //     SizedBox(
-            //       width: 10,
-            //     ),
-            //     Text(
-            //       "($noOfRating)",
-            //       style: TextStyle(color: Colors.grey, fontSize: 12),
-            //     )
-            //   ],
-            // ),
-            SizedBox(
-              height: 10,
-            ),
-            StreamBuilder<DocumentSnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('products')
-                    .doc(id)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  return RaisedButton(
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10.0)),
-                    onPressed: () {
-                      name.text = snapshot.data.data()['name'];
-                      price.text = snapshot.data.data()['price'].toString();
-                      imageUrl.text = snapshot.data.data()['imgUrl'];
-                      Alert(
-                        context: context,
-                        title: "Edit Item",
-                        content: Column(
-                          children: [
-                            FormBuilder(
-                              key: _formKey,
-                              child: Column(
-                                children: [
-                                  FormBuilderTextField(
-                                    controller: name,
-                                    attribute: "productName",
-                                    validators: [
-                                      FormBuilderValidators.required(
-                                          errorText: "Enter product name")
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.center,
+              //   children: <Widget>[
+              //     StarRating(
+              //       rating: rating,
+              //     ),
+              //     SizedBox(
+              //       width: 10,
+              //     ),
+              //     Text(
+              //       "($noOfRating)",
+              //       style: TextStyle(color: Colors.grey, fontSize: 12),
+              //     )
+              //   ],
+              // ),
+              SizedBox(
+                height: 10,
+              ),
+              Expanded(
+                child: FutureBuilder<ProductModel>(
+                    future: fetchProductById(id),
+                    builder: (context, snapshot) {
+                      return RaisedButton(
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0)),
+                        onPressed: () {
+                          name.text = snapshot.data.productName;
+                          price.text = snapshot.data.price.toString();
+                          imageUrl.text = snapshot.data.imgUrl;
+                          Alert(
+                            context: context,
+                            title: "Edit Item",
+                            content: Column(
+                              children: [
+                                FormBuilder(
+                                  key: _formKey,
+                                  child: Column(
+                                    children: [
+                                      FormBuilderTextField(
+                                        controller: name,
+                                        attribute: "productName",
+                                        validators: [
+                                          FormBuilderValidators.required(
+                                              errorText: "Enter product name")
+                                        ],
+                                        decoration:
+                                            InputDecoration(labelText: "Name"),
+                                      ),
+                                      FormBuilderTextField(
+                                        controller: price,
+                                        attribute: "price",
+                                        validators: [
+                                          FormBuilderValidators.required(
+                                              errorText: "Enter product price"),
+                                          FormBuilderValidators.numeric(
+                                              errorText: "Enter number only")
+                                        ],
+                                        decoration:
+                                            InputDecoration(labelText: "Price"),
+                                      ),
+                                      FormBuilderTextField(
+                                        controller: imageUrl,
+                                        attribute: "imageUrl",
+                                        validators: [
+                                          FormBuilderValidators.required(
+                                              errorText:
+                                                  "Enter product image url"),
+                                          FormBuilderValidators.url(
+                                              errorText: "Enter valid url")
+                                        ],
+                                        decoration: InputDecoration(
+                                            labelText: "Image URL"),
+                                      )
                                     ],
-                                    decoration:
-                                        InputDecoration(labelText: "Name"),
                                   ),
-                                  FormBuilderTextField(
-                                    controller: price,
-                                    attribute: "price",
-                                    validators: [
-                                      FormBuilderValidators.required(
-                                          errorText: "Enter product price"),
-                                      FormBuilderValidators.numeric(
-                                          errorText: "Enter number only")
-                                    ],
-                                    decoration:
-                                        InputDecoration(labelText: "Price"),
-                                  ),
-                                  FormBuilderTextField(
-                                    controller: imageUrl,
-                                    attribute: "imageUrl",
-                                    validators: [
-                                      FormBuilderValidators.required(
-                                          errorText: "Enter product image url"),
-                                      FormBuilderValidators.url(
-                                          errorText: "Enter valid url")
-                                    ],
-                                    decoration:
-                                        InputDecoration(labelText: "Image URL"),
-                                  )
-                                ],
-                              ),
-                            )
-                          ],
+                                )
+                              ],
+                            ),
+                            buttons: [
+                              DialogButton(
+                                color: Colors.blue,
+                                child: Text(
+                                  "Edit",
+                                  style: TextStyle(
+                                      color: Colors.white, fontSize: 20),
+                                ),
+                                onPressed: () {
+                                  if (_formKey.currentState.validate()) {
+                                    // FirebaseFirestore.instance
+                                    //     .collection('products')
+                                    //     .doc(id)
+                                    //     .update({
+                                    //   "name": name.text,
+                                    //   "price": int.parse(price.text.toString()),
+                                    //   "imgUrl": imageUrl.text,
+                                    //   "searchKey": name.text
+                                    //       .substring(0, 1)
+                                    //       .toLowerCase()
+                                    // }).then((value) => Navigator.pop(context));
+
+                                    updateProduct(id, {
+                                      "name": name.text,
+                                      "price": int.parse(price.text.toString()),
+                                      "imgUrl": imageUrl.text,
+                                      "searchKey": name.text
+                                          .substring(0, 1)
+                                          .toLowerCase()
+                                    }).then((value) => Navigator.pop(context));
+                                  }
+                                },
+                                width: 170,
+                              )
+                            ],
+                          ).show();
+                        },
+                        color: Colors.blueAccent,
+                        child: Container(
+                          width: 120,
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Icon(Icons.edit, color: Colors.white),
+                                SizedBox(
+                                  width: 5.0,
+                                ),
+                                Text("Edit",
+                                    style: TextStyle(
+                                        color: Colors.white, fontSize: 16))
+                              ],
+                            ),
+                          ),
                         ),
-                        buttons: [
-                          DialogButton(
-                            color: Colors.blue,
-                            child: Text(
-                              "Edit",
+                      );
+                    }),
+              ),
+              SizedBox(
+                height: 10.0,
+              ),
+              Expanded(
+                child: RaisedButton(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0)),
+                  color: Colors.red,
+                  child: Container(
+                    width: 120,
+                    child: Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Icon(Icons.delete_forever, color: Colors.white),
+                          SizedBox(
+                            width: 5.0,
+                          ),
+                          Text("Remove",
                               style:
-                                  TextStyle(color: Colors.white, fontSize: 20),
-                            ),
-                            onPressed: () {
-                              if (_formKey.currentState.validate()) {
-                                FirebaseFirestore.instance
-                                    .collection('products')
-                                    .doc(id)
-                                    .update({
-                                  "name": name.text,
-                                  "price": int.parse(price.text.toString()),
-                                  "imgUrl": imageUrl.text,
-                                }).then((value) => Navigator.pop(context));
-                              }
-                            },
-                            width: 170,
-                          )
+                                  TextStyle(color: Colors.white, fontSize: 16))
                         ],
-                      ).show();
-                    },
-                    color: Colors.blueAccent,
-                    child: Container(
-                      width: 150,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.edit, color: Colors.white),
-                            SizedBox(
-                              width: 5.0,
-                            ),
-                            Text("Edit",
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 16))
-                          ],
-                        ),
                       ),
                     ),
-                  );
-                })
-          ],
+                  ),
+                  onPressed: () {
+                    // FirebaseFirestore.instance
+                    //     .collection('products')
+                    //     .doc(id)
+                    //     .delete();
+
+                    deleteProduct(id);
+                  },
+                ),
+              )
+            ],
+          ),
         ),
       ),
     );

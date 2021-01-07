@@ -4,7 +4,6 @@ import 'package:firebase_core/firebase_core.dart';
 
 FirebaseAuth auth = FirebaseAuth.instance;
 Future<User> login(String username, String password) async {
-  auth.setPersistence(Persistence.LOCAL);
   UserCredential userCredential = await auth.signInWithEmailAndPassword(
       email: username, password: password);
   if (userCredential.user != null) {

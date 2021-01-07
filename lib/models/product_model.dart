@@ -7,7 +7,8 @@ class ProductModel {
   String productName; // name of the product
   int rating; // rating
   String imgUrl; // product image url
-  int noOfRating; // number of rating
+  int noOfRating;
+  String searchKey; // number of rating
   ProductModel(
       {this.id,
       this.owner,
@@ -15,7 +16,8 @@ class ProductModel {
       this.imgUrl,
       this.price,
       this.rating,
-      this.noOfRating});
+      this.noOfRating,
+      this.searchKey});
 
   factory ProductModel.fromSnapshot(DocumentSnapshot snapshot) {
     return ProductModel(
@@ -26,6 +28,33 @@ class ProductModel {
       rating: snapshot.data()['rating'],
       noOfRating: snapshot.data()['noOfRating'],
       imgUrl: snapshot.data()['imgUrl'],
+      searchKey: snapshot.data()['searchKey'],
     );
+  }
+
+  factory ProductModel.fromJson(Map<String, dynamic> json) {
+    return ProductModel(
+      id: json['_id'],
+      owner: json['owner'],
+      productName: json['name'],
+      price: json['price'],
+      rating: json['rating'],
+      noOfRating: json['noOfRating'],
+      imgUrl: json['imgUrl'],
+      searchKey: json['searchKey'],
+    );
+  }
+
+  Map toMap() {
+    var map = new Map();
+    map["owner"] = owner;
+    map["name"] = productName;
+    map["price"] = price;
+    map["rating"] = rating;
+    map["noOfRating"] = noOfRating;
+    map["imgUrl"] = imgUrl;
+    map["searchKey"] = searchKey;
+
+    return map;
   }
 }

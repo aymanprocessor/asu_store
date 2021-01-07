@@ -1,3 +1,5 @@
+import 'package:asu_store/Services/balance_services.dart';
+import 'package:asu_store/models/balance_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +13,7 @@ class BalancePage extends StatefulWidget {
 class _BalancePageState extends State<BalancePage> {
   FirebaseAuth auth = FirebaseAuth.instance;
   User fbuser;
-  List<DocumentSnapshot> documents;
+  List<BalanceModel> documents;
 
   @override
   void initState() {
@@ -20,19 +22,19 @@ class _BalancePageState extends State<BalancePage> {
     if (auth.currentUser != null) {
       setState(() {
         fbuser = auth.currentUser;
+        init();
       });
     }
-
-    init();
   }
 
   init() async {
-    final QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-        .collection('balances')
-        .orderBy('date', descending: true)
-        .get();
+    final balances = await fetchBalances();
+    // final QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+    //     .collection('balances')
+    //     .orderBy('date', descending: true)
+    //     .get();
     setState(() {
-      documents = querySnapshot.docs.toList();
+      documents = balances;
     });
   }
 
@@ -56,13 +58,13 @@ class _BalancePageState extends State<BalancePage> {
     return documents.map((data) => _buildListItem(context, data)).toList();
   }
 
-  DataRow _buildListItem(BuildContext context, DocumentSnapshot data) {
+  DataRow _buildListItem(BuildContext context, BalanceModel data) {
     return DataRow(
       cells: [
         DataCell(Text(DateFormat("yyyy-MM-dd hh:mm aa").format(
             DateTime.fromMillisecondsSinceEpoch(
-                int.parse(data.data()["date"].toString()))))),
-        DataCell(Text(data.data()["balance"].toString())),
+                int.parse(data.date.toString()))))),
+        DataCell(Text(data.balance.toString())),
       ],
     );
   }

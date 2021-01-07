@@ -18,4 +18,25 @@ class UserModel {
       currentBalance: snapshot.data()['current_balance'],
     );
   }
+
+  factory UserModel.fromJson(Map json) {
+    return UserModel(
+      id: json['_id'],
+      email: json['_id'],
+      name: json['name'],
+      phone: json['phone'],
+      currentBalance: json['current_balance'],
+    );
+  }
+
+  Map toMap() {
+    var map = new Map();
+    //map["_id"] = id;
+    map["email"] = email;
+    map["name"] = name;
+    map["phone"] = phone;
+    map["current_balance"] = currentBalance;
+
+    return map;
+  }
 }

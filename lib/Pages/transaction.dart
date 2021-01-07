@@ -1,3 +1,7 @@
+import 'package:asu_store/Services/product_services.dart';
+import 'package:asu_store/Services/transaction_services.dart';
+import 'package:asu_store/models/product_model.dart';
+import 'package:asu_store/models/transaction_model.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +15,8 @@ class TransactionPage extends StatefulWidget {
 class _TransactionPageState extends State<TransactionPage> {
   FirebaseAuth auth = FirebaseAuth.instance;
   User fbuser;
-  List<DocumentSnapshot> documents;
+  List<TransactionModel> documents;
+  List<ProductModel> products;
 
   @override
   void initState() {
@@ -23,21 +28,36 @@ class _TransactionPageState extends State<TransactionPage> {
       });
     }
 
-    init();
+    // init();
   }
 
   init() async {
-    final QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-        .collection('transactions')
-        .orderBy('date', descending: true)
-        .get();
-    setState(() {
-      documents = querySnapshot.docs
-          .where((element) =>
-              element.data()['from'] == fbuser.email ||
-              element.data()['to'] == fbuser.email)
-          .toList();
-    });
+    // final List<TransactionModel> trans = await fetchTransactions();
+
+    // setState(() {
+    //   documents = trans
+    //       .where((element) =>
+    //           element.from == fbuser.email || element.to == fbuser.email)
+    //       .toList();
+    // });
+
+    // final QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+    //     .collection('transactions')
+    //     .orderBy('date', descending: true)
+    //     .get();
+    // setState(() {
+    //   documents = querySnapshot.docs
+    //       .where((element) =>
+    //           element.data()['from'] == fbuser.email ||
+    //           element.data()['to'] == fbuser.email)
+    //       .toList();
+    // });
+
+    // final QuerySnapshot querySnapshot1 =
+    //     await FirebaseFirestore.instance.collection('products').get();
+    // setState(() {
+    //   products = querySnapshot1.docs.toList();
+    // });
   }
 
   @override
@@ -46,34 +66,40 @@ class _TransactionPageState extends State<TransactionPage> {
         appBar: AppBar(
           title: Text("Transaction"),
         ),
-        body: documents != null
-            ? DataTable(columns: [
-                DataColumn(label: Text("From")),
-                DataColumn(label: Text("To")),
-                DataColumn(label: Text("Date")),
-                DataColumn(label: Text("Product Name")),
-                DataColumn(label: Text("Price")),
-              ], rows: _buildList(context))
-            : Center(
-                child: CircularProgressIndicator(),
-              ));
+        body: FutureBuilder<List<TransactionModel>>(
+            future: fetchTransactions(),
+            builder: (context, snapshot) {
+              // print(snapshot.data);
+              return snapshot.hasData
+                  ? DataTable(columns: [
+                      DataColumn(label: Text("From")),
+                      DataColumn(label: Text("To")),
+                      DataColumn(label: Text("Date")),
+                      DataColumn(label: Text("Product Name")),
+                      DataColumn(label: Text("Price")),
+                    ], rows: _buildList(context, snapshot.data))
+                  : Center(
+                      child: CircularProgressIndicator(),
+                    );
+            }));
   }
 
-  List<DataRow> _buildList(BuildContext context) {
+  List<DataRow> _buildList(
+      BuildContext context, List<TransactionModel> documents) {
     return documents.map((data) => _buildListItem(context, data)).toList();
   }
 
-  DataRow _buildListItem(BuildContext context, DocumentSnapshot data) {
-    if (data.data()['from'].toString() == fbuser.email) {
+  DataRow _buildListItem(BuildContext context, TransactionModel data) {
+    if (data.from.toString() == fbuser.email) {
       return DataRow(
         cells: [
-          DataCell(Text(data.data()["from"])),
-          DataCell(Text(data.data()["to"])),
+          DataCell(Text(data.from)),
+          DataCell(Text(data.to)),
           DataCell(Text(DateFormat("yyyy-MM-dd hh:mm aa").format(
               DateTime.fromMillisecondsSinceEpoch(
-                  int.parse(data.data()["date"].toString()))))),
-          DataCell(Text(data.data()["productId"])),
-          DataCell(Text(data.data()["price"].toString()))
+                  int.parse(data.date.toString()))))),
+          DataCell(Text(data.name)),
+          DataCell(Text(data.price.toString()))
         ],
         color: MaterialStateColor.resolveWith(
             (states) => Colors.red.withOpacity(0.5)),
@@ -81,13 +107,13 @@ class _TransactionPageState extends State<TransactionPage> {
     }
     return DataRow(
       cells: [
-        DataCell(Text(data.data()["from"])),
-        DataCell(Text(data.data()["to"])),
+        DataCell(Text(data.from)),
+        DataCell(Text(data.to)),
         DataCell(Text(DateFormat("yyyy-MM-dd hh:mm aa").format(
             DateTime.fromMillisecondsSinceEpoch(
-                int.parse(data.data()["date"].toString()))))),
-        DataCell(Text(data.data()["productId"])),
-        DataCell(Text(data.data()["price"].toString()))
+                int.parse(data.date.toString()))))),
+        DataCell(Text(data.name)),
+        DataCell(Text(data.price.toString()))
       ],
       color: MaterialStateColor.resolveWith(
           (states) => Colors.green.withOpacity(0.5)),
